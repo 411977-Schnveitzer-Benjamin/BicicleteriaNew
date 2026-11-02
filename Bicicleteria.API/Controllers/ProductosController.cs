@@ -27,6 +27,8 @@ public class ProductosController : ControllerBase
         [FromQuery] int? categoriaId,
         [FromQuery] int? marcaId,
         [FromQuery] string? tipoProducto,
+        [FromQuery] int? velocidades,
+        [FromQuery] string? rodado,
         [FromQuery] string? buscar,
         [FromQuery] bool? soloDestacados)
     {
@@ -44,7 +46,18 @@ public class ProductosController : ControllerBase
             query = query.Where(p => p.MarcaId == marcaId.Value);
 
         if (!string.IsNullOrWhiteSpace(tipoProducto))
-            query = query.Where(p => p.TipoProducto == tipoProducto);
+        {
+            if (tipoProducto.Equals("NoBicicleta", StringComparison.OrdinalIgnoreCase))
+                query = query.Where(p => p.TipoProducto != "Bicicleta");
+            else
+                query = query.Where(p => p.TipoProducto == tipoProducto);
+        }
+
+        if (velocidades.HasValue)
+            query = query.Where(p => p.Velocidades == velocidades.Value);
+
+        if (!string.IsNullOrWhiteSpace(rodado))
+            query = query.Where(p => p.Rodado == rodado);
 
         if (!string.IsNullOrWhiteSpace(buscar))
             query = query.Where(p => p.Nombre.Contains(buscar) || p.SKU.Contains(buscar));

@@ -5,6 +5,7 @@ import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import HomePage from './pages/HomePage';
 import CatalogoPage from './pages/CatalogoPage';
+import DetalleProductoPage from './pages/DetalleProductoPage';
 import CarritoPage from './pages/CarritoPage';
 import CheckoutPage from './pages/CheckoutPage';
 import TallerPage from './pages/TallerPage';
@@ -26,6 +27,7 @@ export default function App() {
                 {/* Secciones Separadas */}
                 <Route path="/bicicletas" element={<CatalogoPage seccion="Bicicletas" />} />
                 <Route path="/repuestos" element={<CatalogoPage seccion="Repuestos" />} />
+                <Route path="/producto/:id" element={<DetalleProductoPage />} />
                 <Route path="/taller" element={<TallerPage />} />
                 <Route path="/carrito" element={<CarritoPage />} />
                 <Route path="/login" element={<LoginPage />} />

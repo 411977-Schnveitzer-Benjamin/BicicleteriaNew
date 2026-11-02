@@ -1,10 +1,42 @@
+using System.Text.Json;
+using System.Text.RegularExpressions;
 using Bicicleteria.API.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bicicleteria.API.Data;
 
+public class ProductoCatalogoSeedDto
+{
+    public string SKU { get; set; } = string.Empty;
+    public string Nombre { get; set; } = string.Empty;
+    public string Descripcion { get; set; } = string.Empty;
+    public string CategoriaPadre { get; set; } = string.Empty;
+    public string SubCategoria { get; set; } = string.Empty;
+    public string SubCategoriaSlug { get; set; } = string.Empty;
+    public string Marca { get; set; } = string.Empty;
+    public string TipoProducto { get; set; } = string.Empty;
+    public decimal Precio { get; set; }
+    public int Stock { get; set; }
+    public string? Rodado { get; set; }
+    public string? TalleCuadro { get; set; }
+    public string? Material { get; set; }
+    public int? Velocidades { get; set; }
+    public bool Destacado { get; set; }
+    public string ImagenUrl { get; set; } = string.Empty;
+}
+
 public static class DbSeeder
 {
+    private static readonly string[] SkusPruebaAntiguos =
+    {
+        "BIKE-TREK-MARLIN7-L",
+        "SHIM-RD-M8100-SGS",
+        "SRAM-CS-XG-1275-A1",
+        "BIKE-SPEC-CHISEL-M",
+        "BIKE-GIANT-REVOLT-S",
+        "SHIM-CS-M5100-11V"
+    };
+
     public static async Task SeedAsync(BicicleteriaDbContext context)
     {
         // 1. Roles
@@ -35,11 +67,11 @@ public static class DbSeeder
             {
                 RolId = rolAdmin.Id,
                 Nombre = "Administrador",
-                Apellido = "Bicicletería",
+                Apellido = "El Cairo",
                 Email = "admin@bicicleteria.com",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin123!"),
                 Telefono = "+54 11 4444-5555",
-                Ciudad = "Buenos Aires",
+                Ciudad = "Río Tercero",
                 Activo = true
             };
 
@@ -51,9 +83,9 @@ public static class DbSeeder
                 Email = "cliente@bicicleteria.com",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Cliente123!"),
                 Telefono = "+54 11 6666-7777",
-                Direccion = "Av. del Libertador 1500",
-                Ciudad = "Buenos Aires",
-                CodigoPostal = "1425",
+                Direccion = "Rodríguez Peña 280",
+                Ciudad = "Río Tercero",
+                CodigoPostal = "X5850",
                 Activo = true
             };
 
@@ -61,144 +93,262 @@ public static class DbSeeder
             await context.SaveChangesAsync();
         }
 
-        // 3. Marcas
-        if (!await context.Marcas.AnyAsync())
+        // 3. Limpiar artículos de prueba iniciales si existen
+        var productosPrueba = await context.Productos
+            .Include(p => p.Imagenes)
+            .Where(p => SkusPruebaAntiguos.Contains(p.SKU))
+            .ToListAsync();
+
+        if (productosPrueba.Count > 0)
         {
-            var marcas = new[]
+            foreach (var prodPrueba in productosPrueba)
             {
-                new Marca { Nombre = "Shimano" },
-                new Marca { Nombre = "SRAM" },
-                new Marca { Nombre = "Trek" },
-                new Marca { Nombre = "Specialized" },
-                new Marca { Nombre = "Giant" },
-                new Marca { Nombre = "Venzo" },
-                new Marca { Nombre = "Maxxis" },
-                new Marca { Nombre = "Fox" }
-            };
-            context.Marcas.AddRange(marcas);
+                var itemsCarrito = await context.ItemsCarrito.Where(i => i.ProductoId == prodPrueba.Id).ToListAsync();
+                if (itemsCarrito.Count > 0)
+                    context.ItemsCarrito.RemoveRange(itemsCarrito);
+
+                var detallesOrden = await context.DetallesOrden.Where(d => d.ProductoId == prodPrueba.Id).ToListAsync();
+                if (detallesOrden.Count > 0)
+                {
+                    // Si una orden histórica lo referencia, solo desactivamos o eliminamos el detalle de prueba
+                    context.DetallesOrden.RemoveRange(detallesOrden);
+                }
+
+                if (prodPrueba.Imagenes.Count > 0)
+                    context.ImagenesProducto.RemoveRange(prodPrueba.Imagenes);
+
+                context.Productos.Remove(prodPrueba);
+            }
             await context.SaveChangesAsync();
         }
 
-        // 4. Categorías Jerárquicas
-        if (!await context.Categorias.AnyAsync())
+        // Desactivar marcas de prueba que no pertenecen al stock real de El Cairo
+        var marcasPrueba = await context.Marcas
+            .Where(m => new[] { "Trek", "Specialized", "Giant", "SRAM", "Fox" }.Contains(m.Nombre))
+            .ToListAsync();
+
+        foreach (var mp in marcasPrueba)
         {
-            var catBicicletas = new Categoria { Nombre = "Bicicletas", Slug = "bicicletas", Descripcion = "Bicicletas completas listas para rodar" };
-            var catRepuestos = new Categoria { Nombre = "Repuestos", Slug = "repuestos", Descripcion = "Componentes y piezas de recambio" };
-            var catAccesorios = new Categoria { Nombre = "Accesorios", Slug = "accesorios", Descripcion = "Equipamiento e indumentaria para el ciclista" };
+            var tieneProductos = await context.Productos.AnyAsync(p => p.MarcaId == mp.Id);
+            if (!tieneProductos)
+                context.Marcas.Remove(mp);
+            else
+                mp.Activa = false;
+        }
+        await context.SaveChangesAsync();
 
-            context.Categorias.AddRange(catBicicletas, catRepuestos, catAccesorios);
-            await context.SaveChangesAsync();
-
-            var subCategorias = new[]
-            {
-                new Categoria { CategoriaPadreId = catBicicletas.Id, Nombre = "Mountain Bike (MTB)", Slug = "mtb", Descripcion = "Bicicletas todo terreno rodado 29 y 27.5" },
-                new Categoria { CategoriaPadreId = catBicicletas.Id, Nombre = "Ruta y Gravel", Slug = "ruta-gravel", Descripcion = "Bicicletas de alta velocidad y largas distancias" },
-                new Categoria { CategoriaPadreId = catRepuestos.Id, Nombre = "Transmisión", Slug = "transmision", Descripcion = "Cassettes, cadenas, descarriladores, shifters y palancas" },
-                new Categoria { CategoriaPadreId = catRepuestos.Id, Nombre = "Frenos", Slug = "frenos", Descripcion = "Calipers hidráulicos, discos, pastillas y manijas" },
-                new Categoria { CategoriaPadreId = catAccesorios.Id, Nombre = "Cascos e Indumentaria", Slug = "cascos-indumentaria", Descripcion = "Protección y vestimenta técnica para ciclismo" }
-            };
-            context.Categorias.AddRange(subCategorias);
-            await context.SaveChangesAsync();
+        // 4. Cargar catálogo real desde catalogo_el_cairo.json (923 artículos de las 7 listas de Excel)
+        var rutaJson = Path.Combine(AppContext.BaseDirectory, "Data", "catalogo_el_cairo.json");
+        if (!File.Exists(rutaJson))
+        {
+            rutaJson = Path.Combine(Directory.GetCurrentDirectory(), "Data", "catalogo_el_cairo.json");
         }
 
-        // 5. Productos de ejemplo (Bicicleta + Transmisión Shimano y SRAM)
-        if (!await context.Productos.AnyAsync())
+        if (File.Exists(rutaJson))
         {
-            var catMtb = await context.Categorias.FirstAsync(c => c.Slug == "mtb");
-            var catTransmision = await context.Categorias.FirstAsync(c => c.Slug == "transmision");
-
-            var marcaTrek = await context.Marcas.FirstAsync(b => b.Nombre == "Trek");
-            var marcaShimano = await context.Marcas.FirstAsync(b => b.Nombre == "Shimano");
-            var marcaSram = await context.Marcas.FirstAsync(b => b.Nombre == "SRAM");
-
-            var productosEjemplo = new[]
+            var jsonContent = await File.ReadAllTextAsync(rutaJson);
+            var itemsCatalogo = JsonSerializer.Deserialize<List<ProductoCatalogoSeedDto>>(jsonContent, new JsonSerializerOptions
             {
-                new Producto
+                PropertyNameCaseInsensitive = true
+            }) ?? new List<ProductoCatalogoSeedDto>();
+
+            if (await context.Productos.CountAsync() >= 100)
+            {
+                // Sincronizar las fotos reales y descripciones actualizadas en los productos ya existentes
+                var mapaJsonPorSku = itemsCatalogo.ToDictionary(x => x.SKU, StringComparer.OrdinalIgnoreCase);
+                var productosDb = await context.Productos.Include(p => p.Imagenes).ToListAsync();
+                var huboCambios = false;
+
+                foreach (var prodDb in productosDb)
                 {
-                    CategoriaId = catMtb.Id,
-                    MarcaId = marcaTrek.Id,
-                    SKU = "BIKE-TREK-MARLIN7-L",
-                    Nombre = "Bicicleta MTB Trek Marlin 7 Gen 3 Rodado 29",
-                    Slug = "bicicleta-mtb-trek-marlin-7-gen-3-r29",
-                    Descripcion = "Cuadro Alpha Silver Aluminum con cableado interno, horquilla RockShox Judy y transmisión de 12 velocidades.",
-                    TipoProducto = "Bicicleta",
-                    Precio = 1450000m,
-                    Stock = 5,
-                    Rodado = "29\"",
-                    TalleCuadro = "L",
-                    Material = "Aluminio",
-                    Velocidades = 12,
-                    PesoGramos = 13800,
-                    Destacado = true,
-                    Imagenes = new List<ImagenProducto>
+                    if (mapaJsonPorSku.TryGetValue(prodDb.SKU, out var itemJson))
                     {
-                        new ImagenProducto
+                        if (!string.IsNullOrWhiteSpace(itemJson.Descripcion) && prodDb.Descripcion != itemJson.Descripcion)
                         {
-                            ImagenUrl = "https://images.unsplash.com/photo-1576435728678-68d0fbf94e91?auto=format&fit=crop&w=800&q=80",
-                            PublicId = "bicicleteria/seed/trek-marlin-7",
-                            EsPrincipal = true,
-                            OrdenVisualizacion = 0
+                            prodDb.Descripcion = itemJson.Descripcion;
+                            huboCambios = true;
                         }
-                    }
-                },
-                new Producto
-                {
-                    CategoriaId = catTransmision.Id,
-                    MarcaId = marcaShimano.Id,
-                    SKU = "SHIM-RD-M8100-SGS",
-                    Nombre = "Cambio Trasero Shimano Deore XT RD-M8100 12v SGS Shadow+",
-                    Slug = "cambio-trasero-shimano-deore-xt-rd-m8100-12v",
-                    Descripcion = "Descarrilador trasero Shimano Deore XT serie M8100 para transmisiones monoplato de 12 velocidades (piñón hasta 51T).",
-                    TipoProducto = "Repuesto",
-                    Precio = 165000m,
-                    PrecioDescuento = 149000m,
-                    Stock = 14,
-                    Velocidades = 12,
-                    PesoGramos = 284,
-                    Destacado = true,
-                    Imagenes = new List<ImagenProducto>
-                    {
-                        new ImagenProducto
+
+                        if (!string.IsNullOrWhiteSpace(itemJson.ImagenUrl))
                         {
-                            ImagenUrl = "https://images.unsplash.com/photo-1532298229144-0ec0c57515c7?auto=format&fit=crop&w=800&q=80",
-                            PublicId = "bicicleteria/seed/shimano-xt-m8100",
-                            EsPrincipal = true,
-                            OrdenVisualizacion = 0
-                        }
-                    }
-                },
-                new Producto
-                {
-                    CategoriaId = catTransmision.Id,
-                    MarcaId = marcaSram.Id,
-                    SKU = "SRAM-CS-XG-1275-A1",
-                    Nombre = "Cassette SRAM GX Eagle XG-1275 10-52T 12 Velocidades",
-                    Slug = "cassette-sram-gx-eagle-xg-1275-10-52t-12v",
-                    Descripcion = "Tecnología FULL PIN con rango expandido del 520% para núcleo XD.",
-                    TipoProducto = "Repuesto",
-                    Precio = 290000m,
-                    Stock = 8,
-                    Velocidades = 12,
-                    PesoGramos = 452,
-                    Destacado = true,
-                    Imagenes = new List<ImagenProducto>
-                    {
-                        new ImagenProducto
-                        {
-                            ImagenUrl = "https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=800&q=80",
-                            PublicId = "bicicleteria/seed/sram-gx-eagle",
-                            EsPrincipal = true,
-                            OrdenVisualizacion = 0
+                            var imgPrincipal = prodDb.Imagenes.FirstOrDefault(i => i.EsPrincipal) ?? prodDb.Imagenes.FirstOrDefault();
+                            if (imgPrincipal == null)
+                            {
+                                context.ImagenesProducto.Add(new ImagenProducto
+                                {
+                                    ProductoId = prodDb.Id,
+                                    ImagenUrl = itemJson.ImagenUrl,
+                                    PublicId = $"bicicleteria/elcairo/{prodDb.SKU}",
+                                    EsPrincipal = true,
+                                    OrdenVisualizacion = 0
+                                });
+                                huboCambios = true;
+                            }
+                            else if (imgPrincipal.ImagenUrl != itemJson.ImagenUrl &&
+                                     (imgPrincipal.PublicId == null || imgPrincipal.PublicId.StartsWith("bicicleteria/elcairo/") || imgPrincipal.PublicId.StartsWith("bicicleteria/seed/")))
+                            {
+                                imgPrincipal.ImagenUrl = itemJson.ImagenUrl;
+                                huboCambios = true;
+                            }
                         }
                     }
                 }
+
+                if (huboCambios)
+                {
+                    await context.SaveChangesAsync();
+                }
+            }
+            else
+            {
+
+            // Asegurar Categorías Padre
+            var padresNombres = new Dictionary<string, (string Slug, string Desc)>
+            {
+                ["Bicicletas"] = ("bicicletas", "Bicicletas importadas y nacionales listas para rodar"),
+                ["Repuestos"] = ("repuestos", "Repuestos, cámaras, cubiertas y componentes originales"),
+                ["Accesorios"] = ("accesorios", "Cascos, indumentaria, herramientas, infladores y accesorios")
             };
 
-            context.Productos.AddRange(productosEjemplo);
+            var mapaPadres = new Dictionary<string, Categoria>();
+            foreach (var kvp in padresNombres)
+            {
+                var catPadre = await context.Categorias.FirstOrDefaultAsync(c => c.Slug == kvp.Value.Slug);
+                if (catPadre == null)
+                {
+                    catPadre = new Categoria
+                    {
+                        Nombre = kvp.Key,
+                        Slug = kvp.Value.Slug,
+                        Descripcion = kvp.Value.Desc,
+                        Activa = true
+                    };
+                    context.Categorias.Add(catPadre);
+                    await context.SaveChangesAsync();
+                }
+                mapaPadres[kvp.Key] = catPadre;
+            }
+
+            // Asegurar Subcategorías
+            var subCatsUnicas = itemsCatalogo
+                .GroupBy(x => x.SubCategoriaSlug)
+                .Select(g => g.First())
+                .ToList();
+
+            var mapaSubCategorias = new Dictionary<string, Categoria>();
+            foreach (var sc in subCatsUnicas)
+            {
+                var catExistente = await context.Categorias.FirstOrDefaultAsync(c => c.Slug == sc.SubCategoriaSlug);
+                var padre = mapaPadres.TryGetValue(sc.CategoriaPadre, out var p) ? p : mapaPadres["Repuestos"];
+
+                if (catExistente == null)
+                {
+                    catExistente = new Categoria
+                    {
+                        CategoriaPadreId = padre.Id,
+                        Nombre = sc.SubCategoria,
+                        Slug = sc.SubCategoriaSlug,
+                        Descripcion = $"{sc.SubCategoria} - Catálogo oficial Bicicleterías El Cairo",
+                        Activa = true
+                    };
+                    context.Categorias.Add(catExistente);
+                    await context.SaveChangesAsync();
+                }
+                else
+                {
+                    catExistente.CategoriaPadreId = padre.Id;
+                    catExistente.Nombre = sc.SubCategoria;
+                    catExistente.Activa = true;
+                }
+                mapaSubCategorias[sc.SubCategoriaSlug] = catExistente;
+            }
             await context.SaveChangesAsync();
+
+            // Asegurar Marcas
+            var marcasUnicas = itemsCatalogo.Select(x => x.Marca).Distinct().ToList();
+            var mapaMarcas = new Dictionary<string, Marca>(StringComparer.OrdinalIgnoreCase);
+            var marcasExistentes = await context.Marcas.ToListAsync();
+            foreach (var m in marcasExistentes)
+            {
+                mapaMarcas[m.Nombre] = m;
+            }
+
+            foreach (var nombreMarca in marcasUnicas)
+            {
+                if (!mapaMarcas.ContainsKey(nombreMarca))
+                {
+                    var nuevaMarca = new Marca
+                    {
+                        Nombre = nombreMarca,
+                        Activa = true
+                    };
+                    context.Marcas.Add(nuevaMarca);
+                    mapaMarcas[nombreMarca] = nuevaMarca;
+                }
+            }
+            await context.SaveChangesAsync();
+
+            // Insertar los 923 Productos
+            var skusExistentes = (await context.Productos.Select(p => p.SKU).ToListAsync())
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var nuevosProductos = new List<Producto>();
+            foreach (var item in itemsCatalogo)
+            {
+                if (skusExistentes.Contains(item.SKU))
+                    continue;
+
+                var slugBase = Regex.Replace(item.Nombre.ToLowerInvariant(), @"[^a-z0-9]+", "-").Trim('-');
+                if (slugBase.Length > 150)
+                    slugBase = slugBase[..150].Trim('-');
+                var slugUnico = $"{slugBase}-{item.SKU.ToLowerInvariant()}";
+
+                var categoria = mapaSubCategorias[item.SubCategoriaSlug];
+                var marca = mapaMarcas[item.Marca];
+
+                var prod = new Producto
+                {
+                    CategoriaId = categoria.Id,
+                    MarcaId = marca.Id,
+                    SKU = item.SKU,
+                    Nombre = item.Nombre,
+                    Slug = slugUnico,
+                    Descripcion = item.Descripcion,
+                    TipoProducto = item.TipoProducto,
+                    Precio = item.Precio,
+                    Stock = item.Stock,
+                    StockMinimoAlerta = item.TipoProducto == "Bicicleta" ? 2 : 5,
+                    Rodado = item.Rodado,
+                    TalleCuadro = item.TalleCuadro,
+                    Material = item.Material,
+                    Velocidades = item.Velocidades,
+                    Destacado = item.Destacado,
+                    Activo = true,
+                    Imagenes = new List<ImagenProducto>
+                    {
+                        new ImagenProducto
+                        {
+                            ImagenUrl = item.ImagenUrl,
+                            PublicId = $"bicicleteria/elcairo/{item.SKU}",
+                            EsPrincipal = true,
+                            OrdenVisualizacion = 0
+                        }
+                    }
+                };
+
+                nuevosProductos.Add(prod);
+                skusExistentes.Add(item.SKU);
+            }
+
+            if (nuevosProductos.Count > 0)
+            {
+                context.Productos.AddRange(nuevosProductos);
+                await context.SaveChangesAsync();
+            }
+            }
         }
 
-        // 6. Servicios de Taller
+        // 5. Servicios de Taller
         if (!await context.ServiciosTaller.AnyAsync())
         {
             var servicios = new[]
@@ -212,8 +362,8 @@ public static class DbSeeder
                 },
                 new ServicioTaller
                 {
-                    Nombre = "Regulación de Cambios (Shimano / SRAM)",
-                    Descripcion = "Alineación de fusible, tensión de cable/indexado y ajuste de límites en transmisiones de 8 a 12 velocidades.",
+                    Nombre = "Regulación de Cambios (Shimano / L-TWOO / Sensah)",
+                    Descripcion = "Alineación de fusible, tensión de cable/indexado y ajuste de límites en transmisiones de 6 a 12 velocidades.",
                     PrecioBase = 15000m,
                     DuracionEstimadaMinutos = 45
                 },

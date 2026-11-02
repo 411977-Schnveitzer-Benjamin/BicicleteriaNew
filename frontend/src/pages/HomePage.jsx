@@ -2,65 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axiosClient from '../api/axiosClient';
 import { useCarrito } from '../context/CarritoContext';
-
-const DESTACADOS_FALLBACK = [
-  {
-    id: 1,
-    sku: 'BIKE-TREK-MARLIN7-L',
-    nombre: 'Bicicleta MTB Trek Marlin 7 Gen 3 R29',
-    categoriaNombre: 'Mountain Bike (MTB)',
-    marcaNombre: 'Trek',
-    tipoProducto: 'Bicicleta',
-    precio: 1450000,
-    precioDescuento: null,
-    stock: 5,
-    rodado: '29"',
-    talleCuadro: 'L',
-    velocidades: 12,
-    imagenes: [
-      {
-        imagenUrl: 'https://images.unsplash.com/photo-1576435728678-68d0fbf94e91?auto=format&fit=crop&w=1000&q=85',
-        esPrincipal: true
-      }
-    ]
-  },
-  {
-    id: 2,
-    sku: 'SHIM-RD-M8100-SGS',
-    nombre: 'Cambio Trasero Shimano Deore XT RD-M8100 12v',
-    categoriaNombre: 'Transmisión',
-    marcaNombre: 'Shimano',
-    tipoProducto: 'Repuesto',
-    precio: 165000,
-    precioDescuento: 149000,
-    stock: 14,
-    velocidades: 12,
-    imagenes: [
-      {
-        imagenUrl: 'https://images.unsplash.com/photo-1532298229144-0ec0c57515c7?auto=format&fit=crop&w=1000&q=85',
-        esPrincipal: true
-      }
-    ]
-  },
-  {
-    id: 3,
-    sku: 'SRAM-CS-XG-1275-A1',
-    nombre: 'Cassette SRAM GX Eagle XG-1275 10-52T 12v',
-    categoriaNombre: 'Transmisión',
-    marcaNombre: 'SRAM',
-    tipoProducto: 'Repuesto',
-    precio: 290000,
-    precioDescuento: null,
-    stock: 8,
-    velocidades: 12,
-    imagenes: [
-      {
-        imagenUrl: 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=1000&q=85',
-        esPrincipal: true
-      }
-    ]
-  }
-];
+import { obtenerImagenProducto } from '../utils/productVisuals';
 
 export default function HomePage() {
   const { agregarAlCarrito } = useCarrito();
@@ -75,11 +17,9 @@ export default function HomePage() {
       .then((res) => {
         if (res.data && res.data.length > 0) {
           setDestacados(res.data);
-        } else {
-          setDestacados(DESTACADOS_FALLBACK);
         }
       })
-      .catch(() => setDestacados(DESTACADOS_FALLBACK));
+      .catch(() => setDestacados([]));
   }, []);
 
   const cambiarSlide = (nuevoIndice) => {
@@ -113,7 +53,7 @@ export default function HomePage() {
         <span className="home-eyebrow">TIENDA OFICIAL & SERVICE MECÁNICO</span>
         <h1>Pasión por rodar al máximo nivel</h1>
         <p>
-          En <strong>Bicicleterías El Cairo</strong> seleccionamos bicicletas de montaña, ruta y gravel junto con componentes originales <strong>Shimano</strong> y <strong>SRAM</strong>.
+          En <strong>Bicicleterías El Cairo</strong> encontrás toda la línea de bicicletas <strong>Venzo</strong>, <strong>Oxea</strong>, <strong>SLP</strong> y Nacionales, junto con repuestos originales <strong>Shimano</strong>, cámaras, cubiertas y accesorios.
         </p>
         <div className="home-cta-group">
           <Link to="/bicicletas" className="btn-primary">
@@ -160,10 +100,7 @@ export default function HomePage() {
           <div className={`carousel-stage ${enTransicion ? 'is-moving' : ''}`}>
             {destacados.map((item, idx) => {
               const pos = obtenerPosicionSlide(idx);
-              const imgUrl =
-                item.imagenes?.find((i) => i.esPrincipal)?.imagenUrl ||
-                item.imagenes?.[0]?.imagenUrl ||
-                'https://images.unsplash.com/photo-1576435728678-68d0fbf94e91?auto=format&fit=crop&w=1000&q=85';
+              const imgUrl = obtenerImagenProducto(item);
               const precioFinal = item.precioDescuento ?? item.precio;
 
               return (
@@ -179,7 +116,11 @@ export default function HomePage() {
 
                   <div className="carousel-info">
                     <small className="carousel-category">{item.categoriaNombre}</small>
-                    <h3>{item.nombre}</h3>
+                    <h3>
+                      <Link to={`/producto/${item.id}`} className="product-title-link">
+                        {item.nombre}
+                      </Link>
+                    </h3>
 
                     <div className="carousel-bottom">
                       <div>
@@ -192,16 +133,25 @@ export default function HomePage() {
                       </div>
 
                       {pos === 'active' && (
-                        <button
-                          type="button"
-                          className="btn-primary btn-sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            agregarAlCarrito(item, 1);
-                          }}
-                        >
-                          + Agregar
-                        </button>
+                        <div className="demo-btns" style={{ marginTop: 0 }}>
+                          <Link
+                            to={`/producto/${item.id}`}
+                            className="btn-outline btn-sm"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Ver Ficha
+                          </Link>
+                          <button
+                            type="button"
+                            className="btn-primary btn-sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              agregarAlCarrito(item, 1);
+                            }}
+                          >
+                            + Agregar
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>

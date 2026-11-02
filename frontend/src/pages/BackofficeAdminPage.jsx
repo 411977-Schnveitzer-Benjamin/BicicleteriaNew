@@ -15,6 +15,8 @@ export default function BackofficeAdminPage() {
   });
 
   const [productos, setProductos] = useState([]);
+  const [busquedaAdmin, setBusquedaAdmin] = useState('');
+  const [paginaAdmin, setPaginaAdmin] = useState(1);
   const [mensaje, setMensaje] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [archivoImagen, setArchivoImagen] = useState(null);
@@ -187,64 +189,122 @@ export default function BackofficeAdminPage() {
       )}
 
       {/* Vista 2: Inventario, Stock y Eliminación con Confirmación */}
-      {tabActiva === 'inventario' && (
-        <div className="card-panel">
-          <div className="stock-table-wrap">
-            <table className="stock-table">
-              <thead>
-                <tr>
-                  <th>SKU</th>
-                  <th>Artículo</th>
-                  <th>Sección</th>
-                  <th>Precio</th>
-                  <th>Stock</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {productos.map((p) => (
-                  <tr key={p.id}>
-                    <td><code>{p.sku}</code></td>
-                    <td>{p.nombre}</td>
-                    <td>{p.tipoProducto}</td>
-                    <td>${p.precio.toLocaleString('es-AR')}</td>
-                    <td>
-                      <span className={p.stock <= p.stockMinimoAlerta ? 'stock-out' : 'stock-ok'}>
-                        {p.stock} u.
-                      </span>
-                    </td>
-                    <td>
-                      <div className="demo-btns">
-                        <button
-                          type="button"
-                          className="btn-outline btn-sm"
-                          onClick={() => handleActualizarStock(p.id, Math.max(0, p.stock - 1))}
-                        >
-                          -1
-                        </button>
-                        <button
-                          type="button"
-                          className="btn-outline btn-sm"
-                          onClick={() => handleActualizarStock(p.id, p.stock + 5)}
-                        >
-                          +5
-                        </button>
-                        <button
-                          type="button"
-                          className="btn-danger-outline btn-sm"
-                          onClick={() => setProductoAEliminar(p)}
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    </td>
+      {tabActiva === 'inventario' && (() => {
+        const q = busquedaAdmin.trim().toLowerCase();
+        const filtrados = q
+          ? productos.filter(
+              (p) =>
+                p.nombre.toLowerCase().includes(q) ||
+                p.sku.toLowerCase().includes(q) ||
+                (p.marcaNombre || '').toLowerCase().includes(q) ||
+                (p.categoriaNombre || '').toLowerCase().includes(q)
+            )
+          : productos;
+        const porPagina = 40;
+        const totalPags = Math.max(1, Math.ceil(filtrados.length / porPagina));
+        const pagActual = Math.min(paginaAdmin, totalPags);
+        const itemsPagina = filtrados.slice((pagActual - 1) * porPagina, pagActual * porPagina);
+
+        return (
+          <div className="card-panel">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                className="input-control"
+                style={{ maxWidth: '420px' }}
+                placeholder="Buscar en stock por código SKU, nombre, marca o rubro..."
+                value={busquedaAdmin}
+                onChange={(e) => {
+                  setBusquedaAdmin(e.target.value);
+                  setPaginaAdmin(1);
+                }}
+              />
+              <span style={{ color: '#94A3B8', fontSize: '0.9rem' }}>
+                Mostrando {itemsPagina.length} de {filtrados.length} artículos (Página {pagActual} de {totalPags})
+              </span>
+            </div>
+
+            <div className="stock-table-wrap">
+              <table className="stock-table">
+                <thead>
+                  <tr>
+                    <th>SKU</th>
+                    <th>Artículo</th>
+                    <th>Rubro / Marca</th>
+                    <th>Precio</th>
+                    <th>Stock</th>
+                    <th>Acciones</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {itemsPagina.map((p) => (
+                    <tr key={p.id}>
+                      <td><code>{p.sku}</code></td>
+                      <td>{p.nombre}</td>
+                      <td>{p.categoriaNombre} · <strong>{p.marcaNombre}</strong></td>
+                      <td>${p.precio.toLocaleString('es-AR')}</td>
+                      <td>
+                        <span className={p.stock <= p.stockMinimoAlerta ? 'stock-out' : 'stock-ok'}>
+                          {p.stock} u.
+                        </span>
+                      </td>
+                      <td>
+                        <div className="demo-btns">
+                          <button
+                            type="button"
+                            className="btn-outline btn-sm"
+                            onClick={() => handleActualizarStock(p.id, Math.max(0, p.stock - 1))}
+                          >
+                            -1
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-outline btn-sm"
+                            onClick={() => handleActualizarStock(p.id, p.stock + 5)}
+                          >
+                            +5
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-danger-outline btn-sm"
+                            onClick={() => setProductoAEliminar(p)}
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {totalPags > 1 && (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.75rem', marginTop: '1.25rem' }}>
+                <button
+                  type="button"
+                  className="btn-outline btn-sm"
+                  disabled={pagActual <= 1}
+                  onClick={() => setPaginaAdmin((prev) => Math.max(1, prev - 1))}
+                >
+                  ← Anterior
+                </button>
+                <span style={{ color: '#E2E8F0', fontSize: '0.9rem' }}>
+                  Página {pagActual} de {totalPags}
+                </span>
+                <button
+                  type="button"
+                  className="btn-outline btn-sm"
+                  disabled={pagActual >= totalPags}
+                  onClick={() => setPaginaAdmin((prev) => Math.min(totalPags, prev + 1))}
+                >
+                  Siguiente →
+                </button>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Vista 3: Alta de Producto + Cloudinary */}
       {tabActiva === 'nuevo' && (

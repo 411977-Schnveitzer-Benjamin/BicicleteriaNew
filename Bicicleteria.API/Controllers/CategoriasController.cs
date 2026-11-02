@@ -50,9 +50,9 @@ public class CategoriasController : ControllerBase
     {
         var marcas = await _context.Marcas
             .AsNoTracking()
-            .Where(m => m.Activa)
+            .Where(m => m.Activa && m.Productos.Any(p => p.Activo))
             .OrderBy(m => m.Nombre)
-            .Select(m => new { m.Id, m.Nombre, m.LogoUrl })
+            .Select(m => new { m.Id, m.Nombre, m.LogoUrl, CantidadProductos = m.Productos.Count(p => p.Activo) })
             .ToListAsync();
 
         return Ok(marcas);
