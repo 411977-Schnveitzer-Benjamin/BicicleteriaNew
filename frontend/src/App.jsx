@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext';
 import { CarritoProvider } from './context/CarritoContext';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
+import HomePage from './pages/HomePage';
 import CatalogoPage from './pages/CatalogoPage';
 import CarritoPage from './pages/CarritoPage';
 import CheckoutPage from './pages/CheckoutPage';
@@ -19,13 +20,17 @@ export default function App() {
             <Navbar />
             <main className="main-content">
               <Routes>
-                {/* Rutas Públicas */}
-                <Route path="/" element={<CatalogoPage />} />
+                {/* Pantalla Principal (Intro + Carrusel con Difuminado en Movimiento) */}
+                <Route path="/" element={<HomePage />} />
+
+                {/* Secciones Separadas */}
+                <Route path="/bicicletas" element={<CatalogoPage seccion="Bicicletas" />} />
+                <Route path="/repuestos" element={<CatalogoPage seccion="Repuestos" />} />
                 <Route path="/taller" element={<TallerPage />} />
                 <Route path="/carrito" element={<CarritoPage />} />
                 <Route path="/login" element={<LoginPage />} />
 
-                {/* Ruta Privada para Clientes Autenticados */}
+                {/* Checkout Privado */}
                 <Route
                   path="/checkout"
                   element={
@@ -35,7 +40,7 @@ export default function App() {
                   }
                 />
 
-                {/* Sagrado Backoffice Exclusivo para Rol Administrador */}
+                {/* Panel de Administración Separado */}
                 <Route
                   path="/admin"
                   element={
@@ -48,7 +53,7 @@ export default function App() {
             </main>
             <footer className="footer">
               <div className="container">
-                © {new Date().getFullYear()} <strong>Bicicleterías El Cairo</strong> · .NET 8 Web API + EF Core + SQL Server + Cloudinary + React
+                © {new Date().getFullYear()} <strong>Bicicleterías El Cairo</strong> · Tienda Oficial & Service Especializado
               </div>
             </footer>
           </div>
@@ -57,4 +62,3 @@ export default function App() {
     </AuthProvider>
   );
 }
-

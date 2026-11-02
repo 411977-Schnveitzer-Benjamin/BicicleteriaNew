@@ -7,7 +7,8 @@ public record CrearOrdenRequestDto(
     string DireccionEnvio,
     string CiudadEnvio,
     string CodigoPostalEnvio,
-    string? Notas);
+    string? Notas,
+    string? ReferenciaPago);
 
 public record DetalleOrdenResponseDto(
     int ProductoId,
@@ -21,9 +22,9 @@ public record OrdenResponseDto(
     string NumeroOrden,
     string EstadoOrden,
     string MetodoPago,
+    string EstadoPago,
     decimal Subtotal,
     decimal CostoEnvio,
     decimal MontoTotal,
     DateTime FechaCreacion,
     List<DetalleOrdenResponseDto> Detalles);
-

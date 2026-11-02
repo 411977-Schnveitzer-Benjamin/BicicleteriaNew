@@ -2,83 +2,23 @@ import { useState, useEffect } from 'react';
 import axiosClient from '../api/axiosClient';
 import { useCarrito } from '../context/CarritoContext';
 
-const PRODUCTOS_DEMO = [
-  {
-    id: 1,
-    sku: 'BIKE-TREK-MARLIN7-L',
-    nombre: 'Bicicleta MTB Trek Marlin 7 Gen 3 Rodado 29',
-    categoriaNombre: 'Mountain Bike (MTB)',
-    marcaNombre: 'Trek',
-    tipoProducto: 'Bicicleta',
-    precio: 1450000,
-    precioDescuento: null,
-    stock: 5,
-    rodado: '29"',
-    talleCuadro: 'L',
-    velocidades: 12,
-    destacado: true,
-    imagenes: [
-      {
-        imagenUrl: 'https://images.unsplash.com/photo-1576435728678-68d0fbf94e91?auto=format&fit=crop&w=800&q=80',
-        esPrincipal: true
-      }
-    ]
-  },
-  {
-    id: 2,
-    sku: 'SHIM-RD-M8100-SGS',
-    nombre: 'Cambio Trasero Shimano Deore XT RD-M8100 12v SGS Shadow+',
-    categoriaNombre: 'Transmisión',
-    marcaNombre: 'Shimano',
-    tipoProducto: 'Repuesto',
-    precio: 165000,
-    precioDescuento: 149000,
-    stock: 14,
-    velocidades: 12,
-    destacado: true,
-    imagenes: [
-      {
-        imagenUrl: 'https://images.unsplash.com/photo-1532298229144-0ec0c57515c7?auto=format&fit=crop&w=800&q=80',
-        esPrincipal: true
-      }
-    ]
-  },
-  {
-    id: 3,
-    sku: 'SRAM-CS-XG-1275-A1',
-    nombre: 'Cassette SRAM GX Eagle XG-1275 10-52T 12 Velocidades',
-    categoriaNombre: 'Transmisión',
-    marcaNombre: 'SRAM',
-    tipoProducto: 'Repuesto',
-    precio: 290000,
-    precioDescuento: null,
-    stock: 8,
-    velocidades: 12,
-    destacado: true,
-    imagenes: [
-      {
-        imagenUrl: 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=800&q=80',
-        esPrincipal: true
-      }
-    ]
-  }
-];
-
-export default function CatalogoPage() {
+export default function CatalogoPage({ seccion = 'Bicicletas' }) {
   const { agregarAlCarrito } = useCarrito();
   const [productos, setProductos] = useState([]);
   const [marcas, setMarcas] = useState([]);
-  const [filtroTipo, setFiltroTipo] = useState('');
   const [filtroMarcaId, setFiltroMarcaId] = useState('');
+  const [subTipoRepuesto, setSubTipoRepuesto] = useState('Repuesto');
   const [busqueda, setBusqueda] = useState('');
   const [cargando, setCargando] = useState(true);
-  const [modoDemo, setModoDemo] = useState(false);
 
-  const cargarCatalogo = async () => {
+  const esSeccionBicis = seccion === 'Bicicletas';
+  const tipoActual = esSeccionBicis ? 'Bicicleta' : subTipoRepuesto;
+
+  const cargarProductos = async () => {
     setCargando(true);
     try {
       const params = {};
-      if (filtroTipo) params.tipoProducto = filtroTipo;
+      if (tipoActual) params.tipoProducto = tipoActual;
       if (filtroMarcaId) params.marcaId = filtroMarcaId;
       if (busqueda.trim()) params.buscar = busqueda.trim();
 
@@ -89,61 +29,69 @@ export default function CatalogoPage() {
 
       setProductos(resProd.data);
       setMarcas(resMarcas.data);
-      setModoDemo(false);
     } catch {
-      setProductos(PRODUCTOS_DEMO);
-      setModoDemo(true);
+      setProductos([]);
     } finally {
       setCargando(false);
     }
   };
 
   useEffect(() => {
-    cargarCatalogo();
-  }, [filtroTipo, filtroMarcaId]);
+    setFiltroMarcaId('');
+    setBusqueda('');
+  }, [seccion]);
+
+  useEffect(() => {
+    cargarProductos();
+  }, [seccion, tipoActual, filtroMarcaId]);
 
   const handleBuscarSubmit = (e) => {
     e.preventDefault();
-    cargarCatalogo();
+    cargarProductos();
   };
 
   return (
     <div className="container page-section">
-      <section className="hero-banner">
+      <header className="clean-section-header">
         <div>
-          <span className="hero-pill">BICICLETERÍAS EL CAIRO · TIENDA OFICIAL & SERVICE</span>
-          <h1>Bicicleterías El Cairo — Bicicletas, Repuestos Shimano & SRAM</h1>
-          <p>
-            Encontrá bicicletas completas, grupos de transmisión de 11 y 12 velocidades, frenos hidráulicos y accesorios con respaldo oficial.
+          <span className="section-tag">
+            {esSeccionBicis ? 'CATÁLOGO DE BICICLETAS' : 'COMPONENTES & EQUIPAMIENTO'}
+          </span>
+          <h1>{esSeccionBicis ? 'Bicicletas Completas' : 'Repuestos & Accesorios'}</h1>
+          <p className="subtitle">
+            {esSeccionBicis
+              ? 'Modelos Mountain Bike (MTB), Ruta y Gravel listos para rodar.'
+              : 'Componentes originales Shimano y SRAM, frenos, cubiertas y accesorios.'}
           </p>
         </div>
-      </section>
 
-      {modoDemo && (
-        <div className="alert-info">
-          ℹ️ Mostrando vista previa local. Cuando inicies la API de .NET 8 en <code>http://localhost:5080</code>, el catálogo se conectará en vivo a SQL Server y Cloudinary.
-        </div>
-      )}
-
-      <div className="filters-bar">
-        <div className="filter-chips">
-          {['', 'Bicicleta', 'Repuesto', 'Accesorio'].map((tipo) => (
+        {!esSeccionBicis && (
+          <div className="filter-chips">
             <button
-              key={tipo || 'todos'}
-              className={`chip ${filtroTipo === tipo ? 'chip-active' : ''}`}
-              onClick={() => setFiltroTipo(tipo)}
+              type="button"
+              className={`chip ${subTipoRepuesto === 'Repuesto' ? 'chip-active' : ''}`}
+              onClick={() => setSubTipoRepuesto('Repuesto')}
             >
-              {tipo === '' ? 'Todos' : `${tipo}s`}
+              Repuestos
             </button>
-          ))}
-        </div>
+            <button
+              type="button"
+              className={`chip ${subTipoRepuesto === 'Accesorio' ? 'chip-active' : ''}`}
+              onClick={() => setSubTipoRepuesto('Accesorio')}
+            >
+              Accesorios
+            </button>
+          </div>
+        )}
+      </header>
 
+      <div className="clean-toolbar">
         <select
           className="input-control select-brand"
           value={filtroMarcaId}
           onChange={(e) => setFiltroMarcaId(e.target.value)}
         >
-          <option value="">Todas las Marcas (Shimano, SRAM, Trek...)</option>
+          <option value="">Todas las marcas</option>
           {marcas.map((m) => (
             <option key={m.id} value={m.id}>{m.nombre}</option>
           ))}
@@ -153,16 +101,25 @@ export default function CatalogoPage() {
           <input
             type="text"
             className="input-control"
-            placeholder="Buscar por nombre o SKU (ej. Deore XT, GX Eagle)..."
+            placeholder={
+              esSeccionBicis
+                ? 'Buscar bicicleta por modelo o rodado...'
+                : 'Buscar repuesto (ej. Deore XT, GX Eagle, SKU)...'
+            }
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
           />
-          <button type="submit" className="btn-primary">Buscar</button>
+          <button type="submit" className="btn-outline">Buscar</button>
         </form>
       </div>
 
       {cargando ? (
-        <div className="page-loader">Cargando inventario...</div>
+        <div className="page-loader">Cargando {seccion.toLowerCase()}...</div>
+      ) : productos.length === 0 ? (
+        <div className="empty-state card-panel">
+          <h3>No encontramos artículos con esos filtros</h3>
+          <p>Probá limpiando la búsqueda o cambiando la marca seleccionada.</p>
+        </div>
       ) : (
         <div className="product-grid">
           {productos.map((p) => {
@@ -178,15 +135,14 @@ export default function CatalogoPage() {
                 <div className="product-image-wrap">
                   <img src={imgPrincipal} alt={p.nombre} loading="lazy" />
                   <span className="brand-tag">{p.marcaNombre}</span>
-                  <span className="type-tag">{p.tipoProducto}</span>
                 </div>
 
                 <div className="product-body">
-                  <small className="category-label">{p.categoriaNombre} · SKU: {p.sku}</small>
+                  <small className="category-label">{p.categoriaNombre}</small>
                   <h3>{p.nombre}</h3>
 
                   <div className="specs-row">
-                    {p.rodado && <span className="spec-pill">Rodado {p.rodado}</span>}
+                    {p.rodado && <span className="spec-pill">R{p.rodado}</span>}
                     {p.talleCuadro && <span className="spec-pill">Talle {p.talleCuadro}</span>}
                     {p.velocidades && <span className="spec-pill">{p.velocidades}v</span>}
                   </div>
@@ -198,14 +154,14 @@ export default function CatalogoPage() {
                       )}
                       <div className="current-price">${precioFinal.toLocaleString('es-AR')}</div>
                       <small className={p.stock > 0 ? 'stock-ok' : 'stock-out'}>
-                        {p.stock > 0 ? `Stock disponible (${p.stock})` : 'Sin stock'}
+                        {p.stock > 0 ? `${p.stock} disponibles` : 'Sin stock'}
                       </small>
                     </div>
 
                     <button
                       disabled={p.stock <= 0}
                       onClick={() => agregarAlCarrito(p, 1)}
-                      className="btn-primary"
+                      className="btn-primary btn-sm"
                     >
                       + Carrito
                     </button>
@@ -219,4 +175,3 @@ export default function CatalogoPage() {
     </div>
   );
 }
-

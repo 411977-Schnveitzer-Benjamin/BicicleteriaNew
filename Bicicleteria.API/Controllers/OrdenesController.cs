@@ -86,7 +86,7 @@ public class OrdenesController : ControllerBase
         var itemExistente = carrito.Items.FirstOrDefault(i => i.ProductoId == dto.ProductoId);
         if (itemExistente != null)
         {
-            itemExistente.Cantidad += dto.Cantidad;
+            itemExistente.Cantidad = dto.Cantidad;
         }
         else
         {
@@ -100,7 +100,45 @@ public class OrdenesController : ControllerBase
         carrito.FechaActualizacion = DateTime.UtcNow;
         await _context.SaveChangesAsync();
 
-        return Ok(new { mensaje = "Producto agregado al carrito." });
+        return Ok(new { mensaje = "Producto actualizado en el carrito." });
+    }
+
+    [HttpDelete("carrito/items/{productoId:int}")]
+    public async Task<ActionResult> QuitarItemDelCarrito(int productoId)
+    {
+        var usuarioId = ObtenerUsuarioActualId();
+        var carrito = await _context.Carritos
+            .Include(c => c.Items)
+            .FirstOrDefaultAsync(c => c.UsuarioId == usuarioId);
+
+        if (carrito == null)
+            return NoContent();
+
+        var item = carrito.Items.FirstOrDefault(i => i.ProductoId == productoId);
+        if (item != null)
+        {
+            _context.ItemsCarrito.Remove(item);
+            await _context.SaveChangesAsync();
+        }
+
+        return Ok(new { mensaje = "Artículo quitado del carrito." });
+    }
+
+    [HttpDelete("carrito")]
+    public async Task<ActionResult> VaciarCarritoServidor()
+    {
+        var usuarioId = ObtenerUsuarioActualId();
+        var carrito = await _context.Carritos
+            .Include(c => c.Items)
+            .FirstOrDefaultAsync(c => c.UsuarioId == usuarioId);
+
+        if (carrito != null && carrito.Items.Any())
+        {
+            _context.ItemsCarrito.RemoveRange(carrito.Items);
+            await _context.SaveChangesAsync();
+        }
+
+        return Ok(new { mensaje = "Carrito vaciado correctamente." });
     }
 
     // Cliente / Usuario Autenticado: Confirmar compra y descontar stock
@@ -142,20 +180,28 @@ public class OrdenesController : ControllerBase
             });
         }
 
+        // Aplicar 10% de descuento si el pago es por Transferencia Bancaria
+        var esTransferencia = dto.MetodoPago.Contains("Transferencia", StringComparison.OrdinalIgnoreCase);
+        var montoTotal = esTransferencia ? Math.Round(subtotal * 0.90m, 2) : subtotal;
+
+        var notasCompletas = string.IsNullOrWhiteSpace(dto.ReferenciaPago)
+            ? dto.Notas
+            : $"[Ref. Pago: {dto.ReferenciaPago}] {dto.Notas}".Trim();
+
         var orden = new Orden
         {
             NumeroOrden = $"ORD-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..6].ToUpper()}",
             UsuarioId = usuarioId,
             EstadoOrden = "Pagada",
             MetodoPago = dto.MetodoPago,
-            EstadoPago = "Aprobado",
+            EstadoPago = "Verificado",
             Subtotal = subtotal,
             CostoEnvio = 0m,
-            MontoTotal = subtotal,
+            MontoTotal = montoTotal,
             DireccionEnvio = dto.DireccionEnvio,
             CiudadEnvio = dto.CiudadEnvio,
             CodigoPostalEnvio = dto.CodigoPostalEnvio,
-            Notas = dto.Notas,
+            Notas = notasCompletas,
             DetallesOrden = detallesOrden
         };
 
@@ -169,6 +215,7 @@ public class OrdenesController : ControllerBase
             orden.NumeroOrden,
             orden.EstadoOrden,
             orden.MetodoPago,
+            orden.EstadoPago,
             orden.Subtotal,
             orden.CostoEnvio,
             orden.MontoTotal,
@@ -216,4 +263,3 @@ public class OrdenesController : ControllerBase
         });
     }
 }
-

@@ -17,22 +17,24 @@ export default function Navbar() {
     <header className="navbar">
       <div className="container navbar-inner">
         <Link to="/" className="brand-logo" title="Bicicleterías El Cairo">
-          <LogoElCairo height={48} />
+          <LogoElCairo height={46} />
         </Link>
 
         <nav className="nav-links">
-          <NavLink to="/" end>Catálogo</NavLink>
-          <NavLink to="/taller">Service & Taller</NavLink>
+          <NavLink to="/" end>Inicio</NavLink>
+          <NavLink to="/bicicletas">Bicicletas</NavLink>
+          <NavLink to="/repuestos">Repuestos</NavLink>
+          <NavLink to="/taller">Taller</NavLink>
           {esAdmin && (
             <NavLink to="/admin" className="admin-badge-link">
-              ⚙️ Backoffice Admin
+              Panel Admin
             </NavLink>
           )}
         </nav>
 
         <div className="nav-actions">
           <Link to="/carrito" className="cart-btn">
-            🛒 Carrito
+            <span>Carrito</span>
             {cantidadTotalItems > 0 && (
               <span className="cart-badge">{cantidadTotalItems}</span>
             )}
@@ -41,7 +43,8 @@ export default function Navbar() {
           {usuario ? (
             <div className="user-pill">
               <span className="user-name">
-                {usuario.nombreCompleto} <small>({usuario.rol})</small>
+                {usuario.nombreCompleto.split(' ')[0]}
+                <small>{usuario.rol}</small>
               </span>
               <button onClick={handleLogout} className="btn-outline btn-sm">
                 Salir
