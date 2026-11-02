@@ -48,7 +48,7 @@ export default function App() {
             </main>
             <footer className="footer">
               <div className="container">
-                © {new Date().getFullYear()} Bicicletería Pro · .NET 8 Web API + EF Core + SQL Server + Cloudinary + React
+                © {new Date().getFullYear()} <strong>Bicicleterías El Cairo</strong> · .NET 8 Web API + EF Core + SQL Server + Cloudinary + React
               </div>
             </footer>
           </div>

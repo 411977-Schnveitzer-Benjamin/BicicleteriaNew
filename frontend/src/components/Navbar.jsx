@@ -1,6 +1,7 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCarrito } from '../context/CarritoContext';
+import LogoElCairo from './LogoElCairo';
 
 export default function Navbar() {
   const { usuario, esAdmin, logout } = useAuth();
@@ -15,12 +16,8 @@ export default function Navbar() {
   return (
     <header className="navbar">
       <div className="container navbar-inner">
-        <Link to="/" className="brand-logo">
-          <span className="brand-icon">🚴‍♂️</span>
-          <div>
-            <strong>BICICLETERÍA PRO</strong>
-            <small>SHIMANO · SRAM · TALLER</small>
-          </div>
+        <Link to="/" className="brand-logo" title="Bicicleterías El Cairo">
+          <LogoElCairo height={48} />
         </Link>
 
         <nav className="nav-links">
@@ -60,4 +57,3 @@ export default function Navbar() {
     </header>
   );
 }
-

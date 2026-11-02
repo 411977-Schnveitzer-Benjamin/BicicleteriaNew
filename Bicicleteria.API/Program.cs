@@ -101,8 +101,11 @@ if (app.Environment.IsDevelopment())
     await dbContext.Database.EnsureCreatedAsync();
     await DbSeeder.SeedAsync(dbContext);
 }
+else
+{
+    app.UseHttpsRedirection();
+}
 
-app.UseHttpsRedirection();
 app.UseCors("ReactFrontend");
 
 app.UseAuthentication();

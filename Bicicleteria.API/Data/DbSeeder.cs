@@ -129,7 +129,17 @@ public static class DbSeeder
                     Material = "Aluminio",
                     Velocidades = 12,
                     PesoGramos = 13800,
-                    Destacado = true
+                    Destacado = true,
+                    Imagenes = new List<ImagenProducto>
+                    {
+                        new ImagenProducto
+                        {
+                            ImagenUrl = "https://images.unsplash.com/photo-1576435728678-68d0fbf94e91?auto=format&fit=crop&w=800&q=80",
+                            PublicId = "bicicleteria/seed/trek-marlin-7",
+                            EsPrincipal = true,
+                            OrdenVisualizacion = 0
+                        }
+                    }
                 },
                 new Producto
                 {
@@ -141,10 +151,21 @@ public static class DbSeeder
                     Descripcion = "Descarrilador trasero Shimano Deore XT serie M8100 para transmisiones monoplato de 12 velocidades (piñón hasta 51T).",
                     TipoProducto = "Repuesto",
                     Precio = 165000m,
+                    PrecioDescuento = 149000m,
                     Stock = 14,
                     Velocidades = 12,
                     PesoGramos = 284,
-                    Destacado = true
+                    Destacado = true,
+                    Imagenes = new List<ImagenProducto>
+                    {
+                        new ImagenProducto
+                        {
+                            ImagenUrl = "https://images.unsplash.com/photo-1532298229144-0ec0c57515c7?auto=format&fit=crop&w=800&q=80",
+                            PublicId = "bicicleteria/seed/shimano-xt-m8100",
+                            EsPrincipal = true,
+                            OrdenVisualizacion = 0
+                        }
+                    }
                 },
                 new Producto
                 {
@@ -159,7 +180,17 @@ public static class DbSeeder
                     Stock = 8,
                     Velocidades = 12,
                     PesoGramos = 452,
-                    Destacado = true
+                    Destacado = true,
+                    Imagenes = new List<ImagenProducto>
+                    {
+                        new ImagenProducto
+                        {
+                            ImagenUrl = "https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=800&q=80",
+                            PublicId = "bicicleteria/seed/sram-gx-eagle",
+                            EsPrincipal = true,
+                            OrdenVisualizacion = 0
+                        }
+                    }
                 }
             };
 

@@ -111,10 +111,10 @@ export default function CatalogoPage() {
     <div className="container page-section">
       <section className="hero-banner">
         <div>
-          <span className="hero-pill">EQUIPAMIENTO & TRANSMISIONES OFICIALES</span>
-          <h1>Catálogo de Bicicletas, Repuestos Shimano & SRAM</h1>
+          <span className="hero-pill">BICICLETERÍAS EL CAIRO · TIENDA OFICIAL & SERVICE</span>
+          <h1>Bicicleterías El Cairo — Bicicletas, Repuestos Shimano & SRAM</h1>
           <p>
-            Explorá bicicletas completas, grupos de transmisión de 11 y 12 velocidades, frenos hidráulicos y accesorios técnicos.
+            Encontrá bicicletas completas, grupos de transmisión de 11 y 12 velocidades, frenos hidráulicos y accesorios con respaldo oficial.
           </p>
         </div>
       </section>
