@@ -245,8 +245,39 @@ public class OrdenesController : ControllerBase
 
         var productosBajoStock = await _context.Productos
             .AsNoTracking()
+            .Include(p => p.Marca)
+            .Include(p => p.Categoria)
             .Where(p => p.Activo && p.Stock <= p.StockMinimoAlerta)
-            .Select(p => new { p.Id, p.SKU, p.Nombre, p.Stock, p.StockMinimoAlerta })
+            .OrderBy(p => p.Stock)
+            .Take(25)
+            .Select(p => new
+            {
+                p.Id,
+                p.SKU,
+                p.Nombre,
+                MarcaNombre = p.Marca.Nombre,
+                CategoriaNombre = p.Categoria.Nombre,
+                p.Precio,
+                p.Stock,
+                p.StockMinimoAlerta
+            })
+            .ToListAsync();
+
+        var ordenesRecientes = await _context.Ordenes
+            .AsNoTracking()
+            .Include(o => o.Usuario)
+            .OrderByDescending(o => o.FechaCreacion)
+            .Take(15)
+            .Select(o => new
+            {
+                o.Id,
+                o.NumeroOrden,
+                Cliente = o.Usuario.Nombre + " " + o.Usuario.Apellido,
+                o.MetodoPago,
+                o.EstadoOrden,
+                o.MontoTotal,
+                o.FechaCreacion
+            })
             .ToListAsync();
 
         var turnosPendientes = await _context.TurnosTaller
@@ -259,7 +290,8 @@ public class OrdenesController : ControllerBase
             GananciaTotalAcumulada = gananciasVentas + gananciasTaller,
             CantidadOrdenesValidas = totalOrdenes,
             TurnosTallerPendientes = turnosPendientes,
-            AlertasStockCritico = productosBajoStock
+            AlertasStockCritico = productosBajoStock,
+            OrdenesRecientes = ordenesRecientes
         });
     }
 }

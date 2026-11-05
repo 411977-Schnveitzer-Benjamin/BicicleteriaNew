@@ -145,26 +145,42 @@ public class ProductosController : ControllerBase
     [HttpPost]
     public async Task<ActionResult> CrearProducto([FromBody] CrearActualizarProductoDto dto)
     {
+        var slugFinal = string.IsNullOrWhiteSpace(dto.Slug)
+            ? $"{dto.Nombre.Trim().ToLowerInvariant().Replace(" ", "-")}-{dto.SKU.Trim().ToLowerInvariant()}"
+            : dto.Slug.Trim().ToLowerInvariant();
+
         var producto = new Producto
         {
             CategoriaId = dto.CategoriaId,
             MarcaId = dto.MarcaId,
             SKU = dto.SKU.Trim(),
             Nombre = dto.Nombre.Trim(),
-            Slug = dto.Slug.Trim().ToLowerInvariant(),
+            Slug = slugFinal,
             Descripcion = dto.Descripcion,
             TipoProducto = dto.TipoProducto,
             Precio = dto.Precio,
             PrecioDescuento = dto.PrecioDescuento,
             Stock = dto.Stock,
             StockMinimoAlerta = dto.StockMinimoAlerta,
-            Rodado = dto.Rodado,
-            TalleCuadro = dto.TalleCuadro,
-            Material = dto.Material,
+            Rodado = string.IsNullOrWhiteSpace(dto.Rodado) ? null : dto.Rodado.Trim(),
+            TalleCuadro = string.IsNullOrWhiteSpace(dto.TalleCuadro) ? null : dto.TalleCuadro.Trim(),
+            Material = string.IsNullOrWhiteSpace(dto.Material) ? null : dto.Material.Trim(),
             Velocidades = dto.Velocidades,
             PesoGramos = dto.PesoGramos,
-            Destacado = dto.Destacado
+            Destacado = dto.Destacado,
+            FechaActualizacion = DateTime.UtcNow
         };
+
+        if (!string.IsNullOrWhiteSpace(dto.ImagenUrl))
+        {
+            producto.Imagenes.Add(new ImagenProducto
+            {
+                ImagenUrl = dto.ImagenUrl.Trim(),
+                PublicId = $"bicicleteria/manual/{producto.SKU}",
+                EsPrincipal = true,
+                OrdenVisualizacion = 0
+            });
+        }
 
         _context.Productos.Add(producto);
         await _context.SaveChangesAsync();
@@ -176,7 +192,10 @@ public class ProductosController : ControllerBase
     [HttpPut("{id:int}")]
     public async Task<ActionResult> ActualizarProducto(int id, [FromBody] CrearActualizarProductoDto dto)
     {
-        var producto = await _context.Productos.FindAsync(id);
+        var producto = await _context.Productos
+            .Include(p => p.Imagenes)
+            .FirstOrDefaultAsync(p => p.Id == id);
+
         if (producto == null)
             return NotFound(new { mensaje = "Producto no encontrado." });
 
@@ -184,23 +203,47 @@ public class ProductosController : ControllerBase
         producto.MarcaId = dto.MarcaId;
         producto.SKU = dto.SKU.Trim();
         producto.Nombre = dto.Nombre.Trim();
-        producto.Slug = dto.Slug.Trim().ToLowerInvariant();
+        if (!string.IsNullOrWhiteSpace(dto.Slug))
+        {
+            producto.Slug = dto.Slug.Trim().ToLowerInvariant();
+        }
         producto.Descripcion = dto.Descripcion;
         producto.TipoProducto = dto.TipoProducto;
         producto.Precio = dto.Precio;
         producto.PrecioDescuento = dto.PrecioDescuento;
         producto.Stock = dto.Stock;
         producto.StockMinimoAlerta = dto.StockMinimoAlerta;
-        producto.Rodado = dto.Rodado;
-        producto.TalleCuadro = dto.TalleCuadro;
-        producto.Material = dto.Material;
+        producto.Rodado = string.IsNullOrWhiteSpace(dto.Rodado) ? null : dto.Rodado.Trim();
+        producto.TalleCuadro = string.IsNullOrWhiteSpace(dto.TalleCuadro) ? null : dto.TalleCuadro.Trim();
+        producto.Material = string.IsNullOrWhiteSpace(dto.Material) ? null : dto.Material.Trim();
         producto.Velocidades = dto.Velocidades;
         producto.PesoGramos = dto.PesoGramos;
         producto.Destacado = dto.Destacado;
         producto.FechaActualizacion = DateTime.UtcNow;
 
+        if (!string.IsNullOrWhiteSpace(dto.ImagenUrl))
+        {
+            var imgPrincipal = producto.Imagenes.FirstOrDefault(i => i.EsPrincipal) ?? producto.Imagenes.FirstOrDefault();
+            if (imgPrincipal == null)
+            {
+                _context.ImagenesProducto.Add(new ImagenProducto
+                {
+                    ProductoId = producto.Id,
+                    ImagenUrl = dto.ImagenUrl.Trim(),
+                    PublicId = $"bicicleteria/manual/{producto.SKU}",
+                    EsPrincipal = true,
+                    OrdenVisualizacion = 0
+                });
+            }
+            else if (imgPrincipal.ImagenUrl != dto.ImagenUrl.Trim())
+            {
+                imgPrincipal.ImagenUrl = dto.ImagenUrl.Trim();
+                imgPrincipal.EsPrincipal = true;
+            }
+        }
+
         await _context.SaveChangesAsync();
-        return Ok(new { mensaje = "Producto actualizado correctamente.", producto.Id, producto.Nombre });
+        return Ok(new { mensaje = "Producto actualizado correctamente.", producto.Id, producto.SKU, producto.Nombre });
     }
 
     // Endpoint exclusivo de Administrador para actualizar o agregar stock

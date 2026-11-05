@@ -161,6 +161,11 @@ public static class DbSeeder
 
                 foreach (var prodDb in productosDb)
                 {
+                    // No pisar productos que hayan sido editados manualmente desde el Panel de Administrador,
+                    // salvo que aún tengan caracteres con codificación corrupta ("Ã")
+                    if (prodDb.FechaActualizacion.HasValue && (prodDb.Descripcion == null || !prodDb.Descripcion.Contains("Ã")))
+                        continue;
+
                     if (mapaJsonPorSku.TryGetValue(prodDb.SKU, out var itemJson))
                     {
                         if (!string.IsNullOrWhiteSpace(itemJson.Descripcion) && prodDb.Descripcion != itemJson.Descripcion)

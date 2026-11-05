@@ -83,39 +83,56 @@ export default function CarritoPage() {
         <div className="cart-items-list">
           {items.map((item) => (
             <div key={item.productoId} className="cart-item-row">
-              <div className="cart-item-info">
-                <strong>{item.nombreProducto}</strong>
-                <small>{item.marcaNombre}</small>
-                <span className="unit-price">${item.precioUnitario.toLocaleString('es-AR')} c/u</span>
+              <div className="cart-item-main">
+                {item.imagenPrincipal && (
+                  <Link
+                    to={`/producto/${item.productoId}`}
+                    className="cart-item-thumb"
+                  >
+                    <img
+                      src={item.imagenPrincipal}
+                      alt={item.nombreProducto}
+                    />
+                  </Link>
+                )}
+                <div className="cart-item-info">
+                  <Link to={`/producto/${item.productoId}`} className="product-title-link">
+                    <strong>{item.nombreProducto}</strong>
+                  </Link>
+                  <small>{item.marcaNombre}</small>
+                  <span className="unit-price">${item.precioUnitario.toLocaleString('es-AR')} c/u</span>
+                </div>
               </div>
 
-              <div className="cart-item-controls">
-                <button
-                  type="button"
-                  className="qty-btn"
-                  onClick={() => handleRestarCantidad(item)}
-                >
-                  -
-                </button>
-                <span className="qty-number">{item.cantidad}</span>
-                <button
-                  type="button"
-                  className="qty-btn"
-                  onClick={() => cambiarCantidad(item.productoId, item.cantidad + 1)}
-                >
-                  +
-                </button>
-              </div>
+              <div className="cart-item-bottom-bar">
+                <div className="cart-item-controls">
+                  <button
+                    type="button"
+                    className="qty-btn"
+                    onClick={() => handleRestarCantidad(item)}
+                  >
+                    -
+                  </button>
+                  <span className="qty-number">{item.cantidad}</span>
+                  <button
+                    type="button"
+                    className="qty-btn"
+                    onClick={() => cambiarCantidad(item.productoId, item.cantidad + 1)}
+                  >
+                    +
+                  </button>
+                </div>
 
-              <div className="cart-item-subtotal">
-                <strong>${(item.precioUnitario * item.cantidad).toLocaleString('es-AR')}</strong>
-                <button
-                  type="button"
-                  onClick={() => setItemAEliminar(item)}
-                  className="btn-remove"
-                >
-                  Quitar
-                </button>
+                <div className="cart-item-subtotal">
+                  <strong>${(item.precioUnitario * item.cantidad).toLocaleString('es-AR')}</strong>
+                  <button
+                    type="button"
+                    onClick={() => setItemAEliminar(item)}
+                    className="btn-remove"
+                  >
+                    Quitar
+                  </button>
+                </div>
               </div>
             </div>
           ))}

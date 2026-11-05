@@ -13,8 +13,8 @@ const SERVICIOS_DEMO = [
   },
   {
     id: 2,
-    nombre: 'Regulación de Cambios (Shimano / SRAM)',
-    descripcion: 'Alineación de fusible, tensión de cable/indexado y ajuste de límites en transmisiones de 8 a 12 velocidades.',
+    nombre: 'Regulación de Cambios (Shimano / L-TWOO / Sensah)',
+    descripcion: 'Alineación de fusible, tensión de cable/indexado y ajuste de límites en transmisiones de 6 a 12 velocidades.',
     precioBase: 15000,
     duracionEstimadaMinutos: 45
   },
@@ -32,6 +32,7 @@ export default function TallerPage() {
   const navigate = useNavigate();
 
   const [servicios, setServicios] = useState([]);
+  const [misTurnos, setMisTurnos] = useState([]);
   const [form, setForm] = useState({
     servicioTallerId: 1,
     detallesBicicleta: '',
@@ -41,12 +42,34 @@ export default function TallerPage() {
   const [mensajeExito, setMensajeExito] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
+  const cargarMisTurnos = () => {
+    if (!usuario) {
+      setMisTurnos([]);
+      return;
+    }
+    axiosClient
+      .get('/taller/mis-turnos')
+      .then((res) => setMisTurnos(res.data || []))
+      .catch(() => setMisTurnos([]));
+  };
+
   useEffect(() => {
     axiosClient
       .get('/taller/servicios')
-      .then((res) => setServicios(res.data))
+      .then((res) => {
+        if (res.data && res.data.length > 0) {
+          setServicios(res.data);
+          setForm((prev) => ({ ...prev, servicioTallerId: res.data[0].id }));
+        } else {
+          setServicios(SERVICIOS_DEMO);
+        }
+      })
       .catch(() => setServicios(SERVICIOS_DEMO));
   }, []);
+
+  useEffect(() => {
+    cargarMisTurnos();
+  }, [usuario]);
 
   const handleReservar = async (e) => {
     e.preventDefault();
@@ -67,6 +90,7 @@ export default function TallerPage() {
         `¡Turno #${data.id} agendado para tu ${data.detallesBicicleta}! Estado: ${data.estado}.`
       );
       setForm({ ...form, detallesBicicleta: '', notasCliente: '' });
+      cargarMisTurnos();
     } catch (err) {
       setErrorMsg(
         err.response?.data?.mensaje ||
@@ -77,23 +101,44 @@ export default function TallerPage() {
 
   return (
     <div className="container page-section">
-      <h1>Taller Mecánico Especializado 🔧</h1>
-      <p className="subtitle">
-        Mantenimiento oficial para transmisiones Shimano y SRAM, suspensiones y frenos hidráulicos.
-      </p>
+      <header className="clean-section-header">
+        <div>
+          <span className="section-tag">SERVICE MECÁNICO OFICIAL · EL CAIRO</span>
+          <h1>Taller Mecánico Especializado 🔧</h1>
+          <p className="subtitle">
+            Mantenimiento integral para bicicletas Venzo, Oxea, SLP y Nacionales, transmisiones Shimano y frenos hidráulicos.
+          </p>
+        </div>
+      </header>
 
       <div className="cart-layout">
         <div className="services-list">
-          {servicios.map((s) => (
-            <div key={s.id} className="service-card card-panel">
-              <div className="service-header">
-                <h3>{s.nombre}</h3>
-                <span className="current-price">${s.precioBase.toLocaleString('es-AR')}</span>
+          {servicios.map((s) => {
+            const seleccionado = Number(form.servicioTallerId) === Number(s.id);
+            return (
+              <div
+                key={s.id}
+                onClick={() => setForm({ ...form, servicioTallerId: s.id })}
+                className="service-card card-panel"
+                style={{
+                  cursor: 'pointer',
+                  borderColor: seleccionado ? 'var(--accent-orange)' : 'var(--border)'
+                }}
+              >
+                <div className="service-header">
+                  <h3>{s.nombre}</h3>
+                  <span className="current-price">${s.precioBase.toLocaleString('es-AR')}</span>
+                </div>
+                <p>{s.descripcion}</p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
+                  <small>⏱️ Duración estimada: {s.duracionEstimadaMinutos} min</small>
+                  <span className="spec-pill" style={{ color: seleccionado ? 'var(--accent-yellow)' : 'var(--muted)' }}>
+                    {seleccionado ? '✓ Servicio seleccionado' : 'Elegir este servicio'}
+                  </span>
+                </div>
               </div>
-              <p>{s.descripcion}</p>
-              <small>⏱️ Duración estimada: {s.duracionEstimadaMinutos} min</small>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <form onSubmit={handleReservar} className="card-panel checkout-form">
@@ -107,7 +152,7 @@ export default function TallerPage() {
             <select
               className="input-control"
               value={form.servicioTallerId}
-              onChange={(e) => setForm({ ...form, servicioTallerId: e.target.value })}
+              onChange={(e) => setForm({ ...form, servicioTallerId: Number(e.target.value) })}
             >
               {servicios.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -118,12 +163,12 @@ export default function TallerPage() {
           </label>
 
           <label>
-            Marca, Modelo y Transmisión de tu Bicicleta
+            Marca, Modelo y Rodado de tu Bicicleta
             <input
               type="text"
               required
               className="input-control"
-              placeholder="Ej. Trek Marlin 7 R29 - Shimano Deore 12v"
+              placeholder="Ej. Venzo Skyline R29 - Shimano 21v"
               value={form.detallesBicicleta}
               onChange={(e) => setForm({ ...form, detallesBicicleta: e.target.value })}
             />
@@ -156,7 +201,38 @@ export default function TallerPage() {
           </button>
         </form>
       </div>
+
+      {usuario && misTurnos.length > 0 && (
+        <div className="card-panel" style={{ marginTop: '2rem' }}>
+          <h3>📋 Tus Turnos de Taller Agendados</h3>
+          <div className="stock-table-wrap" style={{ marginTop: '0.75rem' }}>
+            <table className="stock-table">
+              <thead>
+                <tr>
+                  <th>Turno</th>
+                  <th>Servicio</th>
+                  <th>Bicicleta</th>
+                  <th>Fecha Programada</th>
+                  <th>Importe</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {misTurnos.map((t) => (
+                  <tr key={t.id}>
+                    <td><code>#{t.id}</code></td>
+                    <td><strong>{t.servicio}</strong></td>
+                    <td>{t.detallesBicicleta}</td>
+                    <td>{new Date(t.fechaProgramada).toLocaleString('es-AR')}</td>
+                    <td><strong>${(t.precioFinal || 0).toLocaleString('es-AR')}</strong></td>
+                    <td><span className="spec-pill">{t.estado}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-

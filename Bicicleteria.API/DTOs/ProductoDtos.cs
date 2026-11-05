@@ -47,7 +47,8 @@ public record CrearActualizarProductoDto(
     string? Material,
     int? Velocidades,
     int? PesoGramos,
-    bool Destacado);
+    bool Destacado,
+    string? ImagenUrl = null);
 
 public record ActualizarStockDto(int CantidadStock);
 

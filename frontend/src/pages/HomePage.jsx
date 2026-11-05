@@ -10,6 +10,7 @@ export default function HomePage() {
   const [indiceActivo, setIndiceActivo] = useState(0);
   const [enTransicion, setEnTransicion] = useState(false);
   const [pausado, setPausado] = useState(false);
+  const [touchInicioX, setTouchInicioX] = useState(null);
 
   useEffect(() => {
     axiosClient
@@ -97,7 +98,19 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className={`carousel-stage ${enTransicion ? 'is-moving' : ''}`}>
+          <div
+            className={`carousel-stage ${enTransicion ? 'is-moving' : ''}`}
+            onTouchStart={(e) => setTouchInicioX(e.touches[0]?.clientX ?? null)}
+            onTouchEnd={(e) => {
+              if (touchInicioX === null) return;
+              const finX = e.changedTouches[0]?.clientX ?? touchInicioX;
+              const delta = touchInicioX - finX;
+              if (Math.abs(delta) > 40) {
+                cambiarSlide(delta > 0 ? indiceActivo + 1 : indiceActivo - 1);
+              }
+              setTouchInicioX(null);
+            }}
+          >
             {destacados.map((item, idx) => {
               const pos = obtenerPosicionSlide(idx);
               const imgUrl = obtenerImagenProducto(item);

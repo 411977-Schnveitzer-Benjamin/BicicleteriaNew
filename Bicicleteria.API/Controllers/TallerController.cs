@@ -69,6 +69,59 @@ public class TallerController : ControllerBase
     }
 
     [Authorize]
+    [HttpGet("mis-turnos")]
+    public async Task<ActionResult> ObtenerMisTurnos()
+    {
+        var usuarioId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var turnos = await _context.TurnosTaller
+            .AsNoTracking()
+            .Include(t => t.ServicioTaller)
+            .Where(t => t.UsuarioId == usuarioId)
+            .OrderByDescending(t => t.FechaProgramada)
+            .Select(t => new
+            {
+                t.Id,
+                Servicio = t.ServicioTaller.Nombre,
+                t.DetallesBicicleta,
+                t.NotasCliente,
+                t.DiagnosticoMecanico,
+                t.FechaProgramada,
+                t.Estado,
+                t.PrecioFinal
+            })
+            .ToListAsync();
+
+        return Ok(turnos);
+    }
+
+    [Authorize(Roles = "Administrador")]
+    [HttpGet("turnos")]
+    public async Task<ActionResult> ObtenerTodosLosTurnos()
+    {
+        var turnos = await _context.TurnosTaller
+            .AsNoTracking()
+            .Include(t => t.ServicioTaller)
+            .Include(t => t.Usuario)
+            .OrderByDescending(t => t.FechaProgramada)
+            .Select(t => new
+            {
+                t.Id,
+                Cliente = t.Usuario.Nombre + " " + t.Usuario.Apellido,
+                ClienteEmail = t.Usuario.Email,
+                Servicio = t.ServicioTaller.Nombre,
+                t.DetallesBicicleta,
+                t.NotasCliente,
+                t.DiagnosticoMecanico,
+                t.FechaProgramada,
+                t.Estado,
+                t.PrecioFinal
+            })
+            .ToListAsync();
+
+        return Ok(turnos);
+    }
+
+    [Authorize]
     [HttpPost("turnos")]
     public async Task<ActionResult> AgendarTurno([FromBody] CrearTurnoTallerDto dto)
     {
